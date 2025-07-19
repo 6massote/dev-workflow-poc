@@ -1,0 +1,109 @@
+name: Merge Guard
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+  push:
+    branches-ignore: [ master ]
+    # Optional: Configure which feature branches to validate
+    # branches: [ develop, staging ]
+
+env:
+  VALIDATION_TYPE: ""
+
+jobs:
+  validate-merge-state:
+    name: Validate Merge State
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        # Using only Ubuntu for faster, simpler validation
+    
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: false
+    
+    timeout-minutes: 10
+    
+    permissions:
+      contents: read
+      pull-requests: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Cache git references
+        uses: actions/cache@v3
+        with:
+          path: .git/refs
+          key: git-refs-${{ github.repository }}-${{ github.ref }}
+          restore-keys: |
+            git-refs-${{ github.repository }}-
+      
+      - name: Setup validation environment
+        run: |
+          # Make scripts executable
+          chmod +x scripts/validate-merge-state.sh
+          chmod +x scripts/setup-git.sh
+          chmod +x scripts/check-branch-protection.sh
+          
+          # Configure git for the action
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Determine validation type
+        id: validation-type
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "VALIDATION_TYPE=pull_request" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "VALIDATION_TYPE=master_push" >> $GITHUB_OUTPUT
+          else
+            echo "VALIDATION_TYPE=feature_branch" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "Validation type: ${{ steps.validation-type.outputs.VALIDATION_TYPE }}"
+      
+      - name: Run merge state validation
+        env:
+          VALIDATION_TYPE: ${{ steps.validation-type.outputs.VALIDATION_TYPE }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          echo "Running validation with type: $VALIDATION_TYPE"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Ref: ${{ github.ref }}"
+          echo "Branch: ${{ github.ref_name }}"
+          
+          # Run the validation script
+          ./scripts/validate-merge-state.sh
+      
+      - name: Check branch protection (info only)
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Checking branch protection configuration..."
+          ./scripts/check-branch-protection.sh || true
+      
+      - name: Validation summary
+        if: always()
+        run: |
+          echo "## Merge Guard Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Validation Type**: ${{ steps.validation-type.outputs.VALIDATION_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Event**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS**: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "✅ **Status**: All validations passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status**: Validation failed" >> $GITHUB_STEP_SUMMARY
+          fi 

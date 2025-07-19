@@ -1,0 +1,84 @@
+name: Release Please
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  RELEASE_PLEASE_CONFIG: .github/release-please-config.json
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    
+    concurrency:
+      group: release-please
+      cancel-in-progress: false
+    
+    timeout-minutes: 15
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Release Please
+        uses: google-github-actions/release-please-action@v4
+        with:
+          release-type: node
+          package-name: merge-guard-demo
+          include-v-in-tag: true
+          config-file: ${{ env.RELEASE_PLEASE_CONFIG }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          command: release-pr
+      
+      - name: Create Release
+        uses: google-github-actions/release-please-action@v4
+        with:
+          release-type: node
+          package-name: merge-guard-demo
+          include-v-in-tag: true
+          config-file: ${{ env.RELEASE_PLEASE_CONFIG }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          command: github-release
+      
+      - name: Update manifest
+        run: |
+          echo "Updating release-please manifest..."
+          if [[ -f ".release-please-manifest.json" ]]; then
+            echo "Current manifest:"
+            cat .release-please-manifest.json
+          fi
+      
+      - name: Release summary
+        if: always()
+        run: |
+          echo "## Release Please Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package**: merge-guard-demo" >> $GITHUB_STEP_SUMMARY
+          echo "- **Config**: ${{ env.RELEASE_PLEASE_CONFIG }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ job.status }}" == "success" ]]; then
+            echo "✅ **Status**: Release process completed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status**: Release process failed" >> $GITHUB_STEP_SUMMARY
+          fi 

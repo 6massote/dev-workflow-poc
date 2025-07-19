@@ -1,0 +1,36 @@
+{
+  "name": "merge-guard-demo",
+  "version": "0.1.0",
+  "description": "GitHub Safe Merge & Deploy Workflow - A production-ready GitHub project demonstrating secure PR merge and deployment workflows",
+  "private": true,
+  "scripts": {
+    "setup:git": "chmod +x scripts/*.sh && ./scripts/setup-git.sh",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "github",
+    "workflow",
+    "merge",
+    "deploy",
+    "ci-cd",
+    "release-please",
+    "validation",
+    "demo"
+  ],
+  "author": "GitHub Safe Merge & Deploy Workflow",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/dev-workflow-poc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/dev-workflow-poc/issues"
+  },
+  "homepage": "https://github.com/your-org/dev-workflow-poc#readme"
+} 

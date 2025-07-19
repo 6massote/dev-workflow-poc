@@ -1,0 +1,24 @@
+{
+  "release-type": "node",
+  "package-name": "merge-guard-demo",
+  "include-v-in-tag": true,
+  "changelog-sections": [
+    {"type": "feat", "section": "Features"},
+    {"type": "fix", "section": "Bug Fixes"},
+    {"type": "docs", "section": "Documentation"},
+    {"type": "style", "section": "Code Style"},
+    {"type": "refactor", "section": "Refactoring"},
+    {"type": "perf", "section": "Performance"},
+    {"type": "test", "section": "Testing"},
+    {"type": "chore", "section": "Miscellaneous", "hidden": false}
+  ],
+  "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
+  "include-component-in-tag": false,
+  "release-as": null,
+  "prerelease": false,
+  "include-v-in-tag": true,
+  "tag-separator": "-",
+  "changelog-path": "CHANGELOG.md",
+  "version-file": ".release-please-manifest.json"
+} 
